@@ -26,8 +26,11 @@ class ProcessCubitImpl extends ProcessCubit {
       final steps = await _pathFinder.find(
         task,
         onVisit: (visited) async {
+          final percent = progress.visiting(visited);
+          if (percent == state.progress) return;
+
           await Future<void>.delayed(_frame);
-          emit(ProcessState.busy(progress: progress.visiting(visited)));
+          emit(ProcessState.busy(progress: percent));
         },
       );
 
