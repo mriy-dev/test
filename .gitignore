@@ -104,8 +104,3 @@ lib/core/di/injection.config.dart
 # FVM Version Cache
 .fvm/flutter_sdk
 .fvm/versions
-
-*.env
-
-# Environment
-.env

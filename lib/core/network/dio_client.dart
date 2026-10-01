@@ -1,19 +1,19 @@
 import 'package:dio/dio.dart';
 import 'package:talker_dio_logger/talker_dio_logger.dart';
 import 'package:talker_flutter/talker_flutter.dart';
+import 'package:webspark/core/api/store/api_url_store.dart';
+import 'package:webspark/core/network/api_url_interceptor.dart';
 
-/// Builds the app-wide [Dio] instance.
-///
-/// The base URL can be changed at runtime via `dio.options.baseUrl`.
-Dio createDio({required String baseUrl, required Talker talker, bool enableLogging = false}) {
+Dio createDio({required ApiUrlStore urlStore, required Talker talker, bool enableLogging = false}) {
   final dio = Dio(
     BaseOptions(
-      baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 30),
       headers: const {'Accept': 'application/json'},
     ),
   );
+
+  dio.interceptors.add(ApiUrlInterceptor(urlStore));
 
   if (enableLogging) {
     dio.interceptors.add(

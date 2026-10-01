@@ -11,8 +11,12 @@ abstract class ApiGateway {
       return Right(await invoker());
     } on AppException catch (e) {
       return Left(e);
+    } on FormatException {
+      return const Left(AppException(message: AppException.msgUnexpectedResponse));
     } on Exception catch (e) {
       return Left(e.toAppException());
+    } on TypeError {
+      return const Left(AppException(message: AppException.msgUnexpectedResponse));
     } catch (e) {
       return Left(Exception(e).toAppException());
     }

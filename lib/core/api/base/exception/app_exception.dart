@@ -5,30 +5,25 @@ typedef AppEither<MODEL> = Either<AppException, MODEL>;
 
 class AppException implements Exception {
   static const msgFallback = 'Something went wrong, please try again';
+  static const msgUnexpectedResponse = 'Server returned an unexpected response, check the URL';
+  static const msgUnreachable = 'Could not reach the server, check the URL and your connection';
+  static const msgTimeout = 'The server did not respond in time, try again';
+  static const msgBadCertificate = 'The server certificate is not trusted';
+  static const msgNotFound = 'Nothing found at this URL, check the address';
+  static const msgServerError = 'The server failed to process the request, try again later';
 
   const AppException({
     this.code,
-    this.description = '',
     this.message = msgFallback,
     this.response = const <String, dynamic>{},
-    this.isSilent = false,
   });
 
   final String message;
-  final String description;
   final Map<String, dynamic> response;
   final int? code;
-  final bool isSilent;
 
   @override
-  String toString() {
-    if (code == null && message.isEmpty) return description.firstCharToUpper();
-
-    final messageWithCode = '$code ${message.firstCharToUpper()}'.replaceAll('null', '').trim();
-    if (description.isEmpty) return messageWithCode;
-
-    return '$messageWithCode - ${description.firstCharToUpper()}'.trim();
-  }
+  String toString() => code == null ? message : '$code $message';
 }
 
 extension ApiExceptionMapper on Exception {
@@ -54,26 +49,24 @@ extension DioExceptionMapper on DioException {
   }
 
   String _resolveMessage(Map<String, dynamic> body) {
+    final bodyMessage = body['message'];
+    if (bodyMessage is String && bodyMessage.isNotEmpty) return bodyMessage;
+
     final bodyError = body['error'];
     if (bodyError is String && bodyError.isNotEmpty) return bodyError;
 
-    return AppException.msgFallback;
-  }
-}
-
-extension ApiExceptionExtension on AppException {
-  Either<int?, int> matchErrorCode(int errorCode) =>
-      Either.fromPredicate(code ?? errorCode, (_) => code == errorCode, (_) => code);
-
-  Either<String, String> matchErrorMessage(String expected) =>
-      Either.fromPredicate(message, (_) => message == expected, (_) => message);
-}
-
-extension _StringFormatExtension on String {
-  String firstCharToUpper() {
-    if (isEmpty) return '';
-    if (length <= 1) return this[0];
-
-    return '${this[0].toUpperCase()}${substring(1)}';
+    return switch (type) {
+      DioExceptionType.connectionError => AppException.msgUnreachable,
+      DioExceptionType.connectionTimeout ||
+      DioExceptionType.sendTimeout ||
+      DioExceptionType.receiveTimeout => AppException.msgTimeout,
+      DioExceptionType.badCertificate => AppException.msgBadCertificate,
+      DioExceptionType.badResponse => switch (response?.statusCode) {
+        404 => AppException.msgNotFound,
+        final code? when code >= 500 => AppException.msgServerError,
+        _ => AppException.msgFallback,
+      },
+      _ => AppException.msgFallback,
+    };
   }
 }

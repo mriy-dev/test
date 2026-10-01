@@ -7,8 +7,8 @@ import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 import 'package:talker_bloc_logger/talker_bloc_logger.dart';
 import 'package:talker_flutter/talker_flutter.dart';
+import 'package:webspark/core/api/store/api_url_store.dart';
 import 'package:webspark/core/api/webspark_api.dart';
-import 'package:webspark/core/env/env.dart';
 import 'package:webspark/core/network/dio_client.dart';
 
 import 'boot.config.dart';
@@ -30,8 +30,10 @@ Future<void> configureDependencies() async {
 
   get.init();
 
+  await get<ApiUrlStore>().load();
+
   get.registerLazySingleton<Dio>(
-    () => createDio(baseUrl: kEnv.baseUrl, talker: talker, enableLogging: kDebugMode),
+    () => createDio(urlStore: get<ApiUrlStore>(), talker: talker, enableLogging: kDebugMode),
   );
   get.registerLazySingleton<WebsparkApi>(() => WebsparkApi(get<Dio>()));
 }
